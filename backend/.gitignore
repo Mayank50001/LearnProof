@@ -1,6 +1,0 @@
-learnproof_serviceaccountkey.json
-
-# Python cache files
-__pycache__/
-users/__pycache__/
-db.sqlite3
