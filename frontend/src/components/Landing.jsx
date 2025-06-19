@@ -1,4 +1,14 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { handleLogin } from "./auth";
+
 const Landing = ({onGetStarted , user}) => {
+    const navigate = useNavigate();
+    const handleLogin = async () => {
+        await onGetStarted();
+        navigate("/dashboard");
+    }
+
     return (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center px-4">
             <h1 className="text-4xl md:text-6xl font-bold text-blue-600 mb-4">
@@ -9,7 +19,7 @@ const Landing = ({onGetStarted , user}) => {
             </p>
             {!user && (
                 <button
-                    onClick={onGetStarted}
+                    onClick={handleLogin}
                     className="bg-blue-600 hover:bg-blue-900 text-white px-6 py-2 rounded-xl transition-all shadow-md"
                 >
                     Get Started

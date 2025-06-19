@@ -1,55 +1,32 @@
 import { useState } from 'react';
-import { auth, provider, signInWithPopup, signOut } from './firebase';
 import Landing from './components/Landing';
+import { BrowserRouter , Routes , Route, useNavigate } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './components/Dashboard';
+import { Navigate } from 'react-router-dom';
+import { handleLogin , handleLogout } from './components/auth';
 
 function App() {
+
   const [user, setUser] = useState(null);
 
-  const handleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const userData = result.user;
-      setUser(userData);
-
-      const token = await userData.getIdToken();
-
-      const res = await fetch('http://localhost:8000/api/users/firebase-login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken: token }),
-      });
-
-      const data = await res.json();
-      console.log('Backend response: ', data);
-    } catch (err) {
-      console.error('Login error: ', err);
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUser(null);
-  };
-
   return (
-    <div>
-      <Landing onGetStarted={handleLogin} user={user} />
-      {user && (
-        <div className="flex flex-col items-center mt-4">
-          <img src={user.photoURL} className="w-16 h-16 rounded-full" alt="Profile" />
-          <h2>{user.displayName}</h2>
-          <p>{user.email}</p>
-          <button
-            onClick={handleLogout}
-            className="bg-gray-500 hover:bg-gray-800 rounded-xl transition-all text-white px-6 py-2"
-          >
-            Logout
-          </button>
-        </div>
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route 
+          path = "/"
+          element = {<Landing onGetStarted={() => handleLogin(setUser)} user={user} />}
+        />
+        <Route 
+          path = "/dashboard"
+          element = {
+            <ProtectedRoute>
+              <Dashboard onLogout={() => handleLogout(setUser)} />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
