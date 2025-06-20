@@ -10,7 +10,7 @@ export const handleLogin = async (setUser) => {
   
         localStorage.setItem('idToken' , token);
   
-        const res = await fetch('http://localhost:8000/api/users/firebase-login/', {
+        const res = await fetch('http://localhost:8000/api/firebase-login/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

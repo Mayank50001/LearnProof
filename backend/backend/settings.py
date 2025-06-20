@@ -14,7 +14,9 @@ from pathlib import Path
 import os
 import firebase_admin
 from firebase_admin import credentials
+from decouple import config
 
+POSTGRES_PASS = config('POSTGRES_PASSWORD')
 BASE_DIR = Path(__file__).resolve().parent.parent
 FIREBASE_CERT = os.path.join(BASE_DIR , 'learnproof_serviceaccountkey.json')
 
@@ -94,9 +96,13 @@ CORS_ALLOWED_ORIGINS = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    "default":{
+        'ENGINE': "django.db.backends.postgresql",
+        'NAME': 'learnproof',
+        'USER' : 'postgres',
+        'PASSWORD' : 'Er2-30652',
+        'HOST' : 'localhost',
+        'PORT' : '5432',
     }
 }
 
