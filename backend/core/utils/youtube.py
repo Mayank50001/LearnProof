@@ -2,8 +2,9 @@ from googleapiclient.discovery import build
 import re
 from datetime import timedelta
 import isodate
+from .apikey import youtubekey
 
-YOUTUBE_API_KEY = ""
+YOUTUBE_API_KEY = youtubekey
 
 def extract_id(youtube_url):
     """Extract video or playlist ID from YouTube URL"""
