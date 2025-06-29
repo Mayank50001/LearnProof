@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import UserProfile , Playlist , Video
 from rest_framework import status
-from .serializers import UserProfileSerializer
+from .serializers import UserProfileSerializer , VideoSerializer , PlaylistSerializer
 from .utils.firebase import verify_firebase_token
 from .utils.youtube import get_youtube_metadata
 from django.utils import timezone
@@ -111,3 +111,69 @@ class SaveLearningView(APIView):
             return Response({"message": "Playlist and videos saved"}, status=201)
 
         return Response({"error": "Invalid content type"}, status=400)
+
+class ContinueWatchingView(APIView):
+    def post(self , request):
+        idToken = request.data.get("idToken")
+
+        if not idToken:
+            return Response({"error":"Missing id token"} , status=404)
+        
+        try:
+            uinfo = verify_firebase_token(idToken)
+            uid = uinfo["uid"]
+        except:
+            return Response({"error" , "Invalid token"} , status=401)
+        
+        videos = Video.objects.filter(user__uid=uid , is_completed=False).order_by('-imported_at')
+        video_serializer = VideoSerializer(videos)
+        return Response({"videos":video_serializer.data})
+
+class CompletedVideos(APIView):
+    def get(self , request):
+        idToken = request.data.get("idToken")
+
+        if not idToken:
+            return Response({"error" : "Missing ID token"} , status=404)
+        
+        try:
+            decoded = verify_firebase_token(idToken)
+            uid = decoded['uid']
+            user  = UserProfile.objects.get(uid=uid)
+        except:
+            return Response({"error":"Invalid or missing user"})
+        
+        videos = Video.objects.filter(user__id=uid , is_completed=True)
+        video_serializer = VideoSerializer(videos , many=True)
+
+        playlists = Playlist.objects.filter(user__uid=uid)
+        completed_playlists = []
+        for pl in playlists:
+            videos_in_pl = Video.objects.filter(playlist=pl)
+            if videos_in_pl.exists() and all(v.is_completed for v in videos_in_pl):
+                completed_playlists.append(pl)
+
+        pl_serializer = PlaylistSerializer(completed_playlists , many=True)
+
+        return Response({
+            "videos" : video_serializer.data,
+            "playlists" : pl_serializer.data
+        })
+        
+class ProfileInfoView(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+        except:
+            return Response({"error": "Invalid token"}, status=401)
+    
+        try:
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error":"User not found"} , status=404)
+        
+        user_serializer = UserProfileSerializer(user)
+        return Response(user_serializer.data)
+    
