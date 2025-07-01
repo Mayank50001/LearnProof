@@ -1,29 +1,39 @@
-import React from 'react';
-import Sidebar from './Sidebar';
-// import ProfileCard from './ProfileCard';
-import TopBar from './TopBar';
-import { Outlet } from 'react-router-dom';
+import React from "react";
+import Sidebar from "./Sidebar";
+import TopBar from "./TopBar";
+import ContinueWatching from "./ContinueWatching";
+import CompletedSection from "./CompletedSection";
+import ProfileCard from "./ProfileCard";
+import XPChart from "./XPChart";
 
 const DashboardLayout = () => {
     return (
-        <div className="flex h-screen bg-orange-50 text-gray-800">
+        <div className="flex min-h-screen bg-orange-50 text-gray-800">
             {/* Sidebar */}
-            <aside className="w-64 bg-white shadow-md border-r border-orange-100 z-20">
+            <aside className="w-64 bg-white border-r border-orange-200">
                 <Sidebar />
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-y-auto">
+            {/* Main content area */}
+            <main className="flex-1 flex flex-col">
+                {/* Top Bar */}
                 <TopBar />
-                <div className="p-6 overflow-y-auto">
-                    <Outlet />
+
+                {/* Dashboard Widgets */}
+                <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left column (2/3 on large screens) */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <ContinueWatching />
+                        <CompletedSection />
+                    </div>
+
+                    {/* Right column (1/3 on large screens) */}
+                    <div className="space-y-6">
+                        <ProfileCard />
+                        <XPChart />
+                    </div>
                 </div>
             </main>
-
-            {/* Right Sidebar */}
-            <aside className="w-80 bg-white border-l border-orange-100 hidden lg:block shadow-sm">
-                {/* <ProfileCard /> */}
-            </aside>
         </div>
     );
 };

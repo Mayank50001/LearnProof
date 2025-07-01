@@ -1,11 +1,14 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import UserProfile , Playlist , Video
+from .models import UserProfile , Playlist , Video , UserActivityLog
 from rest_framework import status
 from .serializers import UserProfileSerializer , VideoSerializer , PlaylistSerializer
 from .utils.firebase import verify_firebase_token
 from .utils.youtube import get_youtube_metadata
 from django.utils import timezone
+from datetime import timedelta
+from datetime import datetime
+
 
 class FirebaseAuthView(APIView):
     def post(self , request):
@@ -126,7 +129,7 @@ class ContinueWatchingView(APIView):
             return Response({"error" , "Invalid token"} , status=401)
         
         videos = Video.objects.filter(user__uid=uid , is_completed=False).order_by('-imported_at')
-        video_serializer = VideoSerializer(videos)
+        video_serializer = VideoSerializer(videos , many=True)
         return Response({"videos":video_serializer.data})
 
 class CompletedVideos(APIView):
@@ -143,7 +146,7 @@ class CompletedVideos(APIView):
         except:
             return Response({"error":"Invalid or missing user"})
         
-        videos = Video.objects.filter(user__id=uid , is_completed=True)
+        videos = Video.objects.filter(user__uid=uid , is_completed=True)
         video_serializer = VideoSerializer(videos , many=True)
 
         playlists = Playlist.objects.filter(user__uid=uid)
@@ -177,3 +180,34 @@ class ProfileInfoView(APIView):
         user_serializer = UserProfileSerializer(user)
         return Response(user_serializer.data)
     
+class UserActivityGraphView(APIView):
+    def post(self, request):
+        id_token = request.data.get('idToken')
+
+        if not id_token:
+            return Response({"error":"Missing Token"} ,status = 400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid = uid)
+        except:
+            return Response({"error":"Invalid user"} ,status = 401)
+
+
+        #Prepare activity streak for last 14 days
+        today = timezone.now().date()
+        streak_data = []
+
+        for i in range(13 , -1 , -1):
+            date = today - timedelta(days=i)
+            start = timezone.make_aware(datetime.combine(date , datetime.min.time()))
+            end = timezone.make_aware(datetime.combine(date , datetime.max.time()))
+
+            count = UserActivityLog.objects.filter(user=user,timestamp__range=(start , end)).count()
+            streak_data.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "activity_count": count
+            })
+
+        return Response({"graph":streak_data} ,status=200)

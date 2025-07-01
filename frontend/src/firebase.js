@@ -6,7 +6,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAV96gY3SvsfMtiu7F_NdZlrR5a5ecxxs8",
+  apiKey: import.meta.env.VITE_FIREBASE_KEY,
   authDomain: "learnproof.firebaseapp.com",
   projectId: "learnproof",
   storageBucket: "learnproof.firebasestorage.app",
