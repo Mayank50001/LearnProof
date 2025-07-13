@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -16,8 +16,8 @@ const CompletedSection = () => {
     useEffect(() => {
         const fetchCompleted = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/dashboard/completed/`, {
-                    params: { idToken: token },
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/complete/`, {
+                    idToken : token,
                 });
 
                 if (res.data) {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import DashboardLayout from './Dashboard/DashboardLayout';
+import LandingPage from './components/Landing';
+import DashboardLayout from './components/Dashboard/DashboardLayout';
 import { AuthProvider } from './context/AuthContext';
 
 const App = () => {

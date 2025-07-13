@@ -13,7 +13,7 @@ const XPChart = () => {
 
         const fetchXPData = async () =>{
             try{
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/activity-graph` , {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/activity/` , {
                     idToken : token,
                 });
                 setData(res.data.graph || []);

@@ -133,7 +133,7 @@ class ContinueWatchingView(APIView):
         return Response({"videos":video_serializer.data})
 
 class CompletedVideos(APIView):
-    def get(self , request):
+    def post(self , request):
         idToken = request.data.get("idToken")
 
         if not idToken:

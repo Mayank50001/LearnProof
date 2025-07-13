@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { User, Mail, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -14,7 +14,7 @@ const ProfileCard = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/dashboard/profile/`, {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/profile/`, {
                     idToken: token,
                 });
                 setProfile(res.data);

@@ -8,7 +8,7 @@ urlpatterns = [
     path('import/' , ImportYoutubeView.as_view()),
     path("save-learning/" , SaveLearningView.as_view()),
     path("continue-watch/" , ContinueWatchingView.as_view()),
-    path("completed/" , CompletedVideos.as_view()),
+    path("complete/" , CompletedVideos.as_view()),
     path("profile/" , ProfileInfoView.as_view()),
     path("activity/" , UserActivityGraphView.as_view()),
 ]
