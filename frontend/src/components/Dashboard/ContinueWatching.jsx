@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import { Play } from 'lucide-react';
 import { motion } from 'framer-motion';
+import toast from "react-hot-toast";
 
 const ContinueWatching = () => {
     const { token } = useAuth();
@@ -12,19 +13,19 @@ const ContinueWatching = () => {
 
     useEffect(()=>{
         const fetchVideos = async () => {
+            const CW = toast.loading("Loading your dedication...");
             try{
-                const res = axios.post(`${import.meta.env.VITE_BACKEND_URL}/continue-watch/` , {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/continue-watch/` , {
                     idToken: token,
                 });
 
                 if(res.data?.videos){
                     setVideos(res.data.videos);
-                } else {
-                    setError('No videos found.');
                 }
+                toast.success('Loaded your dedication...' , {id: CW});
             } catch (err) {
                 console.error('Error fetching continue watching videos: ' , err);
-                setError('Something went wrong');
+                toast.error("Failed to fetch your history..." , {id: CW});
             } finally {
                 setLoading(false);
             }
@@ -36,12 +37,18 @@ const ContinueWatching = () => {
     } , [token]);
 
     if (loading) {
-        return <div className="text-sm text-gray-500">Loading your videos...</div>;
-    }
-
-    if (error) {
-        return <div className="text-sm text-red-500">{error}</div>;
-    }
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse space-y-4">
+            <div className="aspect-video bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
     if (videos.length === 0) {
         return <div className="text-sm text-gray-600">You're all caught up! 🎉</div>;

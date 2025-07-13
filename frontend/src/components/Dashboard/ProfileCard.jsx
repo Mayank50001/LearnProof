@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { User, Mail, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const ProfileCard = () => {
     const { token } = useAuth();
@@ -13,12 +14,15 @@ const ProfileCard = () => {
 
     useEffect(() => {
         const fetchProfile = async () => {
+            const pl = toast.loading("Loading your learning card...");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/profile/`, {
                     idToken: token,
                 });
                 setProfile(res.data);
+                toast.success("Profile Loaded" , {id : pl});
             } catch (err) {
+                toast.error("Failed to load profile" , {id: pl});
                 console.error('Error fetching profile:', err);
             } finally {
                 setLoading(false);
@@ -28,8 +32,15 @@ const ProfileCard = () => {
         if (token) fetchProfile();
     }, [token]);
 
-    if (loading) return <div className="text-sm text-gray-500">Loading profile...</div>;
-    if (!profile) return <div className="text-sm text-gray-500">No profile info found.</div>;
+    if (loading) {
+    return (
+      <div className="bg-white/70 backdrop-blur-lg border border-orange-200 rounded-xl p-6 shadow-lg animate-pulse space-y-4">
+        <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto"></div>
+        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+        <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+      </div>
+    );
+  }
 
     return (
         <motion.div

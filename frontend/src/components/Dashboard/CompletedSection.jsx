@@ -5,16 +5,17 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const CompletedSection = () => {
     const { token } = useAuth();
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchCompleted = async () => {
+            const CS = toast.loading("Fetching your completions....");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/complete/`, {
                     idToken : token,
@@ -24,9 +25,10 @@ const CompletedSection = () => {
                     setVideos(res.data.videos || []);
                     setPlaylists(res.data.playlists || []);
                 }
+                toast.success("✅ Completed content loaded!", { id: CS });
             } catch (err) {
-                console.error('Error fetching completed data:', err);
-                setError('Failed to load completed content.');
+                toast.error("❌ Failed to load completed content.", { id: loadingToast });
+                console.log('Failed to load completed content.');
             } finally {
                 setLoading(false);
             }
@@ -35,8 +37,19 @@ const CompletedSection = () => {
         if (token) fetchCompleted();
     }, [token]);
 
-    if (loading) return <div className="text-sm text-gray-500">Loading your completed content...</div>;
-    if (error) return <div className="text-sm text-red-500">{error}</div>;
+    if (loading) {
+        return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse space-y-4">
+                <div className="aspect-video bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            </div>
+            ))}
+        </div>
+        );
+    }
 
     return (
         <div className="space-y-10">

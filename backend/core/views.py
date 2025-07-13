@@ -128,7 +128,7 @@ class ContinueWatchingView(APIView):
         except:
             return Response({"error" , "Invalid token"} , status=401)
         
-        videos = Video.objects.filter(user__uid=uid , is_completed=False).order_by('-imported_at')
+        videos = Video.objects.filter(user__uid=uid , is_completed=False).order_by('-imported_at')[:3]
         video_serializer = VideoSerializer(videos , many=True)
         return Response({"videos":video_serializer.data})
 
