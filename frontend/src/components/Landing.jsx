@@ -4,6 +4,7 @@ import { Play, Award, BookOpen, Users, CheckCircle, Star, ArrowRight, Youtube, S
 import { signInWithPopup, GoogleAuthProvider, getIdToken } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -35,7 +36,7 @@ const LandingPage = () => {
           const res = await fetch("http://localhost:8000/api/login/", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "application/json", 
             },
             body: JSON.stringify({ idToken }),
           });

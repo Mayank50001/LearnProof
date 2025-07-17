@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Inbox, Award, LogOut } from 'lucide-react';
+import { Home, BookOpen, Inbox, Award, LogOut, Quote } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
@@ -9,9 +9,10 @@ const Sidebar = () => {
 
     const navItems = [
         { name: 'Home', icon: <Home size={20} />, path: '/dashboard' },
-        { name: 'My Learnings', icon: <BookOpen size={20} />, path: '/dashboard/learnings' },
+        { name: 'My Learnings', icon: <BookOpen size={20} />, path: '/dashboard/library' },
         { name: 'Inbox', icon: <Inbox size={20} />, path: '/dashboard/inbox' },
         { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
+        { name: 'Quiz' , icon: <Quote size={20} />, path: '/dashboard/quiz' },
     ];
 
     const handleLogout = async () => {
@@ -20,7 +21,7 @@ const Sidebar = () => {
     };
 
     return (
-        <div className="h-full flex flex-col justify-between p-6 space-y-8">
+        <div className="fixed h-full flex flex-col justify-between p-6 space-y-8">
             <div>
                 {/* Logo */}
                 <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent mb-8">

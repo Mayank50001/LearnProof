@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import UserProfile , Playlist , Video , UserActivityLog
+from rest_framework.pagination import PageNumberPagination
+from .models import UserProfile , Playlist , Video , UserActivityLog , Certificate , Quiz
 from rest_framework import status
-from .serializers import UserProfileSerializer , VideoSerializer , PlaylistSerializer
+from .serializers import UserProfileSerializer , VideoSerializer , PlaylistSerializer , CertificateSerializer, QuizSerializer
 from .utils.firebase import verify_firebase_token
 from .utils.youtube import get_youtube_metadata
+from .utils.quiz_generator import generate_quiz
 from django.utils import timezone
 from datetime import timedelta
 from datetime import datetime
@@ -90,9 +92,11 @@ class SaveLearningView(APIView):
         
         elif content_type == "playlist":
             pid = data["id"]
+
             if Playlist.objects.filter(user=user, pid=pid).exists():
                 return Response({"message": "Playlist already saved"}, status=200)
 
+            # create playlist
             playlist = Playlist.objects.create(
                 user=user,
                 pid=pid,
@@ -102,13 +106,18 @@ class SaveLearningView(APIView):
             )
 
             for v in data.get("videos", []):
-                Video.objects.create(
+                Video.objects.update_or_create(
                     user=user,
                     vid=v["video_id"],
-                    name=v["title"],
-                    url=v["url"],
-                    playlist=playlist,
-                    imported_at=timezone.now()
+                    defaults={
+                        'name': v["title"],
+                        'url': v["url"],
+                        'playlist': playlist,
+                        'imported_at': timezone.now(),
+                        'description': v.get("description", ""),
+                        'watch_progress': 0.0,
+                        'is_completed': False
+                    }
                 )
 
             return Response({"message": "Playlist and videos saved"}, status=201)
@@ -146,7 +155,7 @@ class CompletedVideos(APIView):
         except:
             return Response({"error":"Invalid or missing user"})
         
-        videos = Video.objects.filter(user__uid=uid , is_completed=True)
+        videos = Video.objects.filter(user__uid=uid , is_completed=True)[:3]
         video_serializer = VideoSerializer(videos , many=True)
 
         playlists = Playlist.objects.filter(user__uid=uid)
@@ -211,3 +220,200 @@ class UserActivityGraphView(APIView):
             })
 
         return Response({"graph":streak_data} ,status=200)
+    
+class MyLearningsView(APIView):
+    def post(self , request):
+        id_token = request.data.get("idToken")
+        page = request.data.get("page" , 1)
+        page_size = request.data.get("page_size" , 10)
+
+        if not id_token:
+            return Response({"error" : "Missing Token"} , status=400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid = uid)
+        except:
+            return Response({"error" : "Invalid or missing user"})
+
+        # Force page param into request.GET for paginator
+        request._request.GET = request._request.GET.copy()
+        request._request.GET['page'] = str(page)
+
+        # Paginated Videos
+        videos = Video.objects.filter(user = user).order_by('-imported_at')
+        paginator = PageNumberPagination()
+        paginator.page_size = page_size
+        paginated_videos = paginator.paginate_queryset(videos , request)
+        video_serializer = VideoSerializer(paginated_videos , many=True)
+        paginated_video_response = paginator.get_paginated_response(video_serializer.data).data
+
+        playlists = Playlist.objects.filter(user = user).order_by('-id')
+        playlists_data = []
+        for pl in playlists:
+            pl_videos = Video.objects.filter(playlist = pl)
+            pl_video_serializer = VideoSerializer(pl_videos , many=True)
+            pl_data = PlaylistSerializer(pl).data
+            pl_data["videos"] = pl_video_serializer.data
+            playlists_data.append(pl_data)
+
+        return Response({
+            "videos" : paginated_video_response,
+            "playlists" : playlists_data
+        } , status = 200)
+    
+class CertificateView(APIView):
+    def post(self , request):
+        id_token = request.data.get("idToken")
+
+        if not id_token:
+            return Response({"error":"Missing idToken"} , status=401)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid = uid)
+        except:
+            return Response({"error" : "Invalid or missing user"} , status = 404)
+        
+
+        certificates = Certificate.objects.filter(user = user).order_by("-issued_at")
+        certificate_serializer = CertificateSerializer(certificates , many=True)
+
+        return Response(certificate_serializer.data , status=200)
+    
+class QuizListView(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        if not id_token:
+            return Response({"error": "Missing idToken"}, status=400)
+
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        videos = Video.objects.filter(user=user, playlist__isnull=True, is_completed=True)
+
+        playlists = []
+        for pl in Playlist.objects.filter(user=user):
+            total = pl.video_set.count()
+            completed = pl.video_set.filter(is_completed=True).count()
+            if total > 0 and completed == total:
+                playlists.append(pl)
+
+        return Response({
+            "videos" : VideoSerializer(videos, many=True).data,
+            "playlists" : PlaylistSerializer(playlists, many=True).data
+        })
+    
+class StartQuizView(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        vid = pid = None
+        type = request.data.get("contentType")
+        if type == "video":
+            vid = request.data.get("contentId")
+        else :
+            pip = request.data.get("contentId")
+        print(f"{vid} - {pid}")
+
+        if not id_token or not vid:
+            return Response({"error": "Missing idToken or videoId"}, status=400)
+
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        if not (vid or pid):
+            return Response({"error":"Need a video or a playlist to work with"})
+        
+        target = None
+        if vid:
+            try:
+                target = Video.objects.get(user=user, vid=vid)
+            except Video.DoesNotExist:
+                return Response({"error": "Video not found"}, status=404)
+        elif pid:
+            try:
+                target = Playlist.objects.get(user=user, pid=pid)
+            except Playlist.DoesNotExist:
+                return Response({"error": "Playlist not found"}, status=404)
+            
+
+        title = target.name if target else "Quiz"
+        desc = getattr(target, 'description', 'No description available')
+
+        questions = generate_quiz(title, desc)
+
+        quiz = Quiz.objects.create(
+            user = user,
+            video = target if vid else None,
+            playlist = target if pid else None,
+            questions = questions,
+            attempted_at = timezone.now()
+        )
+
+        return Response({
+            "quiz" : {
+                "quiz_id": quiz.id,
+                "questions": questions,
+                "time_limit" : 20,  # Example time limit in minutes
+            }
+        })
+
+class SubmitQuizView(APIView):
+    def post(self,request):
+        id_token = request.data.get("idToken")
+        quiz_id = request.data.get("quizId")
+        answers = request.data.get("answers")
+
+        if not id_token or not quiz_id or not answers:
+            return Response({"error": "Missing idToken, quizId or answers"}, status=400)
+
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        try:
+            quiz = Quiz.objects.get(id=quiz_id, user=user)
+        except Quiz.DoesNotExist:
+            return Response({"error": "Quiz not found"}, status=404)
+
+        score = 0
+        for i, question in enumerate(quiz.questions):
+            if answers[i] == question['answer']:
+                score += 1
+
+        score = round((score / len(quiz.questions)) * 100, 2)
+        passed = score >= 50
+
+        quiz.score = score
+        quiz.passed = passed
+        quiz.save()
+
+        if passed:
+            cert = Certificate.objects.create(
+                user=user,
+                video = quiz.video,
+                playlist = quiz.playlist,
+                download_url=f"/media/certificates/{quiz.id}.pdf",  # Placeholder URL
+                issued_at=timezone.now()
+            )
+            certificate_url = cert.download_url
+
+        return Response({
+            "score": score,
+            "passed": passed,
+            "certificate_url":certificate_url
+        }, status=200)
+    

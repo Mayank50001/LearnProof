@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import FirebaseAuthView , ImportYoutubeView , SaveLearningView , ContinueWatchingView , CompletedVideos , ProfileInfoView, UserActivityGraphView
+from .views import FirebaseAuthView , ImportYoutubeView , SaveLearningView , ContinueWatchingView , CompletedVideos , ProfileInfoView, UserActivityGraphView, MyLearningsView , CertificateView, StartQuizView, QuizListView, SubmitQuizView
 
 urlpatterns = [
     path('signup/', FirebaseAuthView.as_view()),
@@ -11,4 +11,9 @@ urlpatterns = [
     path("complete/" , CompletedVideos.as_view()),
     path("profile/" , ProfileInfoView.as_view()),
     path("activity/" , UserActivityGraphView.as_view()),
+    path("my-learnings/" , MyLearningsView.as_view()),
+    path("certs/" , CertificateView.as_view()),
+    path("quiz-list/" , QuizListView.as_view()),
+    path("start-quiz/" , StartQuizView.as_view()),
+    path("submit-quiz/" , SubmitQuizView.as_view()),
 ]
