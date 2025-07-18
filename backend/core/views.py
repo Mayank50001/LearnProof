@@ -88,6 +88,12 @@ class SaveLearningView(APIView):
                 imported_at = timezone.now(),
                 description = data["description"],
             )
+
+            activity = UserActivityLog.objects.create(
+                user = user,
+                activity_type = "Learning Import",
+            )
+
             return Response({"message":"Congo!! You have showed your dedication towards learning"})
         
         elif content_type == "playlist":
@@ -119,6 +125,11 @@ class SaveLearningView(APIView):
                         'is_completed': False
                     }
                 )
+            
+            activity = UserActivityLog.objects.create(
+                user = user,
+                activity_type = "Learning Import",
+            )
 
             return Response({"message": "Playlist and videos saved"}, status=201)
 
@@ -226,6 +237,7 @@ class MyLearningsView(APIView):
         id_token = request.data.get("idToken")
         page = request.data.get("page" , 1)
         page_size = request.data.get("page_size" , 10)
+        search_query = request.data.get("searchQuery", "")
 
         if not id_token:
             return Response({"error" : "Missing Token"} , status=400)
@@ -243,13 +255,18 @@ class MyLearningsView(APIView):
 
         # Paginated Videos
         videos = Video.objects.filter(user = user).order_by('-imported_at')
+        playlists = Playlist.objects.filter(user = user).order_by('-id')
+
+        if search_query:
+            videos = videos.filter(name__icontains=search_query)
+            playlists = playlists.filter(name__icontains=search_query)
+
         paginator = PageNumberPagination()
         paginator.page_size = page_size
         paginated_videos = paginator.paginate_queryset(videos , request)
         video_serializer = VideoSerializer(paginated_videos , many=True)
         paginated_video_response = paginator.get_paginated_response(video_serializer.data).data
-
-        playlists = Playlist.objects.filter(user = user).order_by('-id')
+        
         playlists_data = []
         for pl in playlists:
             pl_videos = Video.objects.filter(playlist = pl)
@@ -318,10 +335,10 @@ class StartQuizView(APIView):
         if type == "video":
             vid = request.data.get("contentId")
         else :
-            pip = request.data.get("contentId")
+            pid = request.data.get("contentId")
         print(f"{vid} - {pid}")
 
-        if not id_token or not vid:
+        if not id_token or not (vid or pid):
             return Response({"error": "Missing idToken or videoId"}, status=400)
 
         try:
@@ -358,6 +375,11 @@ class StartQuizView(APIView):
             playlist = target if pid else None,
             questions = questions,
             attempted_at = timezone.now()
+        )
+
+        activity = UserActivityLog.objects.create(
+            user = user,
+            activity_type = "Quiz Started" if vid else "Playlist Quiz Started"
         )
 
         return Response({
@@ -401,7 +423,22 @@ class SubmitQuizView(APIView):
         quiz.passed = passed
         quiz.save()
 
+        activity = UserActivityLog.objects.create(
+            user = user,
+            activity_type = "Quiz Submitted" if quiz.video else "Playlist Quiz Submitted"
+        )
+
         if passed:
+
+            if quiz.playlist:
+                video_count = quiz.playlist.video_set.count()
+                user.xp += video_count * 5  # Example XP for passing a playlist quiz
+                user.level = (user.xp // 100) + 1  # Example level calculation
+            else:
+                user.xp += 10  # Example XP for passing a video quiz
+                user.level = (user.xp // 100) + 1  # Example level calculation
+            user.save()
+
             cert = Certificate.objects.create(
                 user=user,
                 video = quiz.video,
@@ -411,9 +448,135 @@ class SubmitQuizView(APIView):
             )
             certificate_url = cert.download_url
 
+            activity = UserActivityLog.objects.create(
+                user = user,
+                activity_type = "Certificate Issued" if quiz.video else "Playlist Certificate Issued"
+            )
+
         return Response({
             "score": score,
             "passed": passed,
             "certificate_url":certificate_url
         }, status=200)
+    
+class ClassroomView(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        vid = request.data.get("videoId")
+
+        if not id_token or not vid:
+            return Response({"error":"Missing idToken or videoId"}, status=400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        try:
+            video = Video.objects.select_related('playlist').get(user=user , vid=vid)
+        except Video.DoesNotExist:
+            return Response({"error":"Video Not found"}, status=404)
+        
+        video_data = VideoSerializer(video).data
+        
+        playlist_data = None
+        if video.playlist:
+            playlist_videos = Video.objects.filter(user=user, playlist=video.playlist)
+            playlist_data = {
+                "name" : video.playlist.name,
+                "videos" : VideoSerializer(playlist_videos, many=True).data,
+            }
+
+        activity = UserActivityLog.objects.create(
+            user=user,
+            activity_type="Classroom Accessed" if video.playlist else "Video Accessed"
+        )
+        
+        return Response({
+            "video" : video_data,
+            "playlist" : playlist_data
+        }, status=200)
+
+class MarkVideoAsCompletedView(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        vid = request.data.get("videoId")
+
+        if not id_token or not vid:
+            return Response({"error": "Missing idToken or videoId"}, status=400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        try:
+            video = Video.objects.get(user=user, vid=vid)
+        except Video.DoesNotExist:
+            return Response({"error": "Video not found"}, status=404)
+
+        video.is_completed = True
+        video.watch_progress = 100
+        video.save()
+
+        user.xp += 10  # Example XP for completing a video
+        user.level = (user.xp // 100) + 1  # Example level calculation
+        user.save()
+
+        activity = UserActivityLog.objects.create(
+            user = user,
+            activity_type = "Video Marked as Completed"
+        )
+
+        return Response({"message": "Video marked as completed"}, status=200)
+    
+class DeleteVideo(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        vid = request.data.get("videoId")
+
+        if not id_token or not vid:
+            return Response({"error": "Missing idToken or videoId"}, status=400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        try:
+            video = Video.objects.get(user=user, vid=vid)
+            video.delete()
+            return Response({"message": "Video deleted successfully"}, status=200)
+        except Video.DoesNotExist:
+            return Response({"error": "Video not found"}, status=404)
+        
+class DeletePlaylist(APIView):
+    def post(self, request):
+        id_token = request.data.get("idToken")
+        pid = request.data.get("playlistId")
+
+        if not id_token or not pid:
+            return Response({"error": "Missing idToken or playlistId"}, status=400)
+        
+        try:
+            decoded = verify_firebase_token(id_token)
+            uid = decoded["uid"]
+            user = UserProfile.objects.get(uid=uid)
+        except UserProfile.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        try:
+            playlist = Playlist.objects.get(user=user, pid=pid)
+            playlist_videos = Video.objects.filter(playlist=playlist)
+            deleted_count, details = playlist_videos.delete()  # Delete all videos in the playlist
+            playlist.delete()
+            return Response({"message": "Playlist and Videos associated with it deleted successfully"}, status=200)
+        except Playlist.DoesNotExist:
+            return Response({"error": "Playlist not found"}, status=404)
     

@@ -51,19 +51,20 @@ const ProfileCard = () => {
         >
             {/* Avatar */}
             <div className="w-16 h-16 bg-orange-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto">
-                {profile.full_name ? profile.full_name[0].toUpperCase() : 'U'}
+                {profile.name ? profile.name[0].toUpperCase() : 'U'}
             </div>
 
             {/* Info */}
             <div className="text-center">
-                <h2 className="text-lg font-semibold text-gray-800">{profile.full_name}</h2>
+                <h2 className="text-lg font-semibold text-gray-800">{profile.name}</h2>
                 <p className="text-sm text-gray-600">{profile.email}</p>
             </div>
 
             {/* XP / Stats */}
             <div className="flex items-center justify-center gap-2 text-orange-600 mt-2 text-sm">
                 <Zap size={16} />
-                <span>{profile.total_xp || 0} XP</span>
+                <span>{profile.xp || 0} XP</span>
+                <span className='font-bold'>- Level {profile.level}</span>
             </div>
         </motion.div>
     );

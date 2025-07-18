@@ -79,7 +79,6 @@ class Certificate(models.Model):
 class UserActivityLog(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     activity_type = models.CharField(max_length=100)
-    details = models.JSONField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

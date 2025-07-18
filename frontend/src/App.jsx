@@ -9,6 +9,7 @@ import Inbox from './components/Dashboard/Inbox';
 import ProtectedRoute from "./routes/ProtectedRoute"
 import { AuthProvider } from './context/AuthContext';
 import Quiz from './components/Dashboard/Quiz';
+import Classroom from './components/Classroom';
 
 const App = () => {
     return (
@@ -30,7 +31,9 @@ const App = () => {
                         <Route path="certificates" element={<MyCertificates />} />
                         <Route path='inbox' element={<Inbox />} />
                         <Route path='quiz' element={<Quiz />}/>
+                        
                     </Route>
+                    <Route path='classroom/:videoId' element={<Classroom />}/>
                 </Routes>
             </Router>
         </AuthProvider>

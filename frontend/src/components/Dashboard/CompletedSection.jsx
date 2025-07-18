@@ -6,19 +6,21 @@ import { useAuth } from '../../context/AuthContext';
 import { CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const CompletedSection = () => {
     const { token } = useAuth();
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchCompleted = async () => {
             const CS = toast.loading("Fetching your completions....");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/complete/`, {
-                    idToken : token,
+                    idToken: token,
                 });
 
                 if (res.data) {
@@ -39,15 +41,15 @@ const CompletedSection = () => {
 
     if (loading) {
         return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse space-y-4">
-                <div className="aspect-video bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 animate-pulse space-y-4">
+                        <div className="aspect-video bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                ))}
             </div>
-            ))}
-        </div>
         );
     }
 
@@ -68,15 +70,21 @@ const CompletedSection = () => {
                                 transition={{ delay: index * 0.05 }}
                                 className="bg-white rounded-xl border border-green-100 shadow-sm hover:shadow-md overflow-hidden transition-all duration-300"
                             >
-                                <div className="aspect-video bg-gray-100">
-                                    <iframe
-                                        className="w-full h-full"
-                                        src={`https://www.youtube.com/embed/${video.vid}`}
-                                        title={video.name}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    />
+                                <div
+                                    onClick={() => navigate(`/classroom/${video.vid}`)}
+                                    className='aspect-video bg-gray-100 cursor-pointer relative group'
+                                >
+                                    <img src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`} alt={video.name} className='w-full h-full object-cover rounded' />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-12 w-12 text-white"
+                                            viewBox="0 0 24 24"
+                                            fill="currentColor"
+                                        >
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </div>
                                 </div>
                                 <div className="p-4">
                                     <h3 className="font-semibold text-gray-800 text-md truncate">{video.name}</h3>

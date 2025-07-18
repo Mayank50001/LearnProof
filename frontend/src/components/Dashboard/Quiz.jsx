@@ -55,10 +55,10 @@ const Quiz = () => {
 
     const handleStartQuiz = async (type, id) => {
         try {
-            
+
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/start-quiz/`, {
                 idToken: token,
-                contentType : type,
+                contentType: type,
                 contentId: id,
             });
             toast.dismiss();
@@ -85,7 +85,7 @@ const Quiz = () => {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/submit-quiz/`, {
                 idToken: token,
                 quizId: quizData.quiz_id,
-                answers : answerList,
+                answers: answerList,
             });
             setResult(res.data);
             toast.success("Quiz submitted!");
@@ -167,48 +167,56 @@ const Quiz = () => {
             <h2 className="text-xl font-bold mb-4">Take a Quiz</h2>
             <div className="space-y-4">
                 <h3 className="font-medium">Standalone Videos</h3>
-                <div className="grid gap-4">
-                    {videos.map(video => (
-                        <motion.div
-                            key={video.vid}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex justify-between items-center p-3 bg-white shadow rounded"
-                        >
-                            <div>
-                                <p className="font-medium">{video.name}</p>
-                            </div>
-                            <button
-                                onClick={() => handleStartQuiz("video",video.vid)}
-                                className="px-3 py-1 bg-orange-500 text-white rounded"
+                {videos.length === 0 ? (
+                    <p className="text-sm text-gray-600">No videos available for quizzes.</p>
+                ) : (
+                    <div className="grid gap-4">
+                        {videos.map(video => (
+                            <motion.div
+                                key={video.vid}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex justify-between items-center p-3 bg-white shadow rounded"
                             >
-                                Take Quiz
-                            </button>
-                        </motion.div>
-                    ))}
-                </div>
+                                <div>
+                                    <p className="font-medium">{video.name}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleStartQuiz("video", video.vid)}
+                                    className="px-3 py-1 bg-orange-500 text-white rounded"
+                                >
+                                    Take Quiz
+                                </button>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
 
                 <h3 className="font-medium mt-6">Completed Playlists</h3>
-                <div className="space-y-4">
-                    {playlists.map(pl => (
-                        <motion.div
-                            key={pl.pid}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex justify-between items-center p-3 bg-white shadow rounded"
-                        >
-                            <div>
-                                <p className="font-medium">{pl.name}</p>
-                            </div>
-                            <button
-                                onClick={() => handleStartQuiz("playlist",pl.pid)}
-                                className="px-3 py-1 bg-orange-500 text-white rounded"
+                {playlists.length === 0 ? (
+                    <p className="text-sm text-gray-600">No completed playlists available for quizzes.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {playlists.map(pl => (
+                            <motion.div
+                                key={pl.pid}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex justify-between items-center p-3 bg-white shadow rounded"
                             >
-                                Take Quiz
-                            </button>
-                        </motion.div>
-                    ))}
-                </div>
+                                <div>
+                                    <p className="font-medium">{pl.name}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleStartQuiz("playlist", pl.pid)}
+                                    className="px-3 py-1 bg-orange-500 text-white rounded"
+                                >
+                                    Take Quiz
+                                </button>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
